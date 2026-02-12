@@ -19,39 +19,29 @@
         
         .container { max-width: 1000px; margin: 0 auto; padding: 20px; flex: 1; }
 
-        /* Grid de Notícias */
-        #blog-feed { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
-            gap: 25px; 
-            margin-top: 30px;
-        }
-
-        #admin-panel { display: none; background: #fff; padding: 30px; border: 3px solid #000; margin: 40px 0; box-shadow: 10px 10px 0px #000; }
+        /* Admin UI */
+        #admin-controls { display: none; margin: 20px 0; text-align: center; }
+        #admin-panel { display: none; background: #fff; padding: 30px; border: 3px solid #000; margin: 20px 0; box-shadow: 10px 10px 0px #000; }
         #admin-panel input, #admin-panel textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; box-sizing: border-box; }
 
+        /* Grid de Notícias */
+        #blog-feed { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 30px; }
+
         /* Card de Notícia */
-        .blog-card { 
-            background: white; border: 1px solid #eee; cursor: pointer; 
-            position: relative; border-radius: 8px; overflow: hidden; height: fit-content;
-        }
-        
-        /* Quando aberta, ocupa a linha toda */
+        .blog-card { background: white; border: 1px solid #eee; cursor: pointer; position: relative; border-radius: 8px; overflow: hidden; height: fit-content; transition: 0.3s; }
         .blog-card.active { grid-column: 1 / -1; cursor: default; border: 1px solid #000; }
 
         .card-header { padding: 20px; position: relative; }
-        .card-header h3 { margin: 0; font-size: 1.5rem; line-height: 1.2; padding-right: 40px; }
+        .card-header h3 { margin: 0; font-size: 1.5rem; line-height: 1.2; padding-right: 60px; }
         .active .card-header h3 { font-size: 2.2rem; }
         
-        /* Botões de Controle */
-        .close-post { display: none; position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; }
+        /* Botões */
+        .close-post { display: none; position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; z-index: 10; }
         .active .close-post { display: block; }
 
-        /* Três Pontinhos (Delete) */
-        .admin-options { 
-            display: none; position: absolute; top: 15px; right: 45px; 
-            cursor: pointer; font-weight: bold; font-size: 1.2rem; padding: 0 5px;
-        }
+        /* Três Pontinhos */
+        .admin-dots { display: none; position: absolute; top: 15px; right: 45px; cursor: pointer; font-size: 1.5rem; line-height: 1; color: #888; padding: 5px; z-index: 10; }
+        .admin-dots:hover { color: #000; }
 
         .card-image img { width: 100%; height: 250px; object-fit: cover; display: block; }
         .active .card-image img { height: 450px; }
@@ -63,9 +53,10 @@
         #lightbox { display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
         #lightbox img { max-width: 90%; max-height: 90%; }
 
+        .btn-main { display: block; width: 100%; padding: 15px; margin: 20px 0; border: 2px solid black; background: white; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-admin-toggle { background: #000; color: #fff; max-width: 300px; margin: 0 auto; }
+
         footer { background-color: #000; color: #fff; text-align: center; padding: 40px 20px; margin-top: 50px; }
-        
-        .btn-main { display: block; width: 100%; padding: 15px; margin: 20px 0; border: 2px solid black; background: white; font-weight: bold; cursor: pointer; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -81,12 +72,18 @@
     </header>
 
     <div class="container">
-        <div id="admin-panel">
-            <h2>Novo Post</h2>
-            <input type="text" id="post-title" placeholder="Título">
-            <input type="text" id="post-image" placeholder="URL da Imagem">
-            <textarea id="post-body" rows="8" placeholder="Texto..."></textarea>
-            <button class="btn-main" style="background: black; color: white;" onclick="createPost()">Publicar</button>
+        <div id="admin-controls">
+            <button class="btn-main btn-admin-toggle" onclick="toggleAdminPanel()">+ Nova Publicação</button>
+            <div id="admin-panel">
+                <h2 style="margin-top:0">Criar Nova Notícia</h2>
+                <input type="text" id="post-title" placeholder="Título da Notícia">
+                <input type="text" id="post-image" placeholder="URL da Imagem">
+                <textarea id="post-body" rows="8" placeholder="Escreva o conteúdo aqui (use parágrafos)..."></textarea>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-main" style="background: #000; color: #fff; margin: 0;" onclick="createPost()">Publicar</button>
+                    <button class="btn-main" style="margin: 0;" onclick="toggleAdminPanel()">Cancelar</button>
+                </div>
+            </div>
         </div>
 
         <div id="blog-feed"></div>
@@ -102,6 +99,7 @@
         import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, startAfter, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+        // COLOQUE SEU CONFIG DO FIREBASE AQUI
         const firebaseConfig = {
   apiKey: "AIzaSyALHh2CFuSSWI2MR6RyiqRZZf4ABnp9Zyo",
   authDomain: "deep-horizons-51171.firebaseapp.com",
@@ -118,7 +116,6 @@
         const provider = new GoogleAuthProvider();
         
         let lastVisiblePost = null;
-        let firstBatchDocs = []; // Para poder "recolher"
         let isAdmin = false;
 
         window.handleLogin = async () => { try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); } };
@@ -129,20 +126,21 @@
                 document.getElementById('user-info').innerText = user.email;
                 document.getElementById('user-info').style.display = 'inline';
                 document.getElementById('login-btn').innerText = 'Sair';
-                if (isAdmin) document.getElementById('admin-panel').style.display = 'block';
-                loadPosts();
-            } else {
-                loadPosts();
+                document.getElementById('login-btn').onclick = () => auth.signOut().then(() => location.reload());
+                if (isAdmin) document.getElementById('admin-controls').style.display = 'block';
             }
+            loadPosts();
         });
 
-        // Função Deletar com Dupla Confirmação
+        window.toggleAdminPanel = () => {
+            const panel = document.getElementById('admin-panel');
+            panel.style.display = (panel.style.display === 'block') ? 'none' : 'block';
+        };
+
         window.deletePost = async (event, postId) => {
             event.stopPropagation();
-            const conf1 = confirm("Deseja deletar esta notícia?");
-            if (conf1) {
-                const conf2 = confirm("TEM CERTEZA? Esta ação não pode ser desfeita.");
-                if (conf2) {
+            if (confirm("Deseja apagar esta notícia permanentemente?")) {
+                if (confirm("Último aviso: Tem certeza absoluta?")) {
                     await deleteDoc(doc(db, "posts", postId));
                     location.reload();
                 }
@@ -152,13 +150,14 @@
         window.togglePost = (event, element) => {
             const isImage = event.target.tagName === 'IMG';
             const isClose = event.target.classList.contains('close-post');
-            const isOptions = event.target.classList.contains('admin-options');
+            const isDots = event.target.classList.contains('admin-dots');
             
-            if (isOptions) return;
+            if (isDots) return;
             if (isClose) { event.stopPropagation(); element.classList.remove('active'); return; }
             
             if (!element.classList.contains('active')) {
                 element.classList.add('active');
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else if (isImage) {
                 document.getElementById('lightbox-img').src = event.target.src;
                 document.getElementById('lightbox').style.display = 'flex';
@@ -171,11 +170,7 @@
                 loadPosts(true);
                 btn.innerText = "RECOLHER NOTÍCIAS";
             } else {
-                const feed = document.getElementById('blog-feed');
-                feed.innerHTML = ''; // Limpa e recarrega só as primeiras
-                lastVisiblePost = null;
-                loadPosts();
-                btn.innerText = "VER MAIS NOTÍCIAS";
+                location.reload(); // Maneira mais simples de recolher e resetar o grid
             }
         };
 
@@ -193,13 +188,13 @@
             snap.forEach(docSnap => {
                 const p = docSnap.data();
                 const id = docSnap.id;
-                const options = isAdmin ? `<span class="admin-options" onclick="deletePost(event, '${id}')">...</span>` : '';
+                const dots = isAdmin ? `<span class="admin-dots" onclick="deletePost(event, '${id}')">...</span>` : '';
                 
                 feed.innerHTML += `
                     <article class="blog-card" onclick="togglePost(event, this)">
                         <div class="card-header">
                             <span class="close-post">&times;</span>
-                            ${options}
+                            ${dots}
                             <h3>${p.title}</h3>
                         </div>
                         ${p.image ? `<div class="card-image"><img src="${p.image}"></div>` : ''}
@@ -213,6 +208,7 @@
             const title = document.getElementById('post-title').value;
             const img = document.getElementById('post-image').value;
             const body = document.getElementById('post-body').value;
+            if(!title || !body) return alert("Preencha os campos!");
             await addDoc(collection(db, "posts"), { title, image: img, content: body, date: new Date() });
             location.reload();
         };
