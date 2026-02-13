@@ -21,7 +21,6 @@ const ADMIN_EMAIL = "campameurer@gmail.com";
 let lastVisiblePost = null;
 let isAdmin = false;
 
-// --- Authentication ---
 const loginBtn = document.getElementById('login-btn');
 onAuthStateChanged(auth, (user) => {
     const adminControls = document.getElementById('admin-controls');
