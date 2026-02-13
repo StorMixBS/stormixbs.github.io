@@ -13,74 +13,97 @@
     <style>
         :root { --primary-black: #000000; --bg-gray: #fcfcfc; --text-main: #1a1a1a; }
         body { font-family: 'Inter', sans-serif; margin: 0; background-color: var(--bg-gray); color: var(--text-main); line-height: 1.6; display: flex; flex-direction: column; min-height: 100vh; }
+        
         nav { background: #000; padding: 10px 20px; display: flex; justify-content: flex-end; align-items: center; }
         #login-btn { background: #4285F4; color: white; border: none; padding: 8px 15px; cursor: pointer; font-weight: bold; border-radius: 4px; font-size: 0.8rem; }
         #user-info { color: white; font-size: 0.8rem; margin-right: 10px; display: none; }
+
         header { background-color: var(--primary-black); color: white; padding: 50px 20px; text-align: center; }
         header h1 { margin: 0; font-size: 3rem; text-transform: uppercase; letter-spacing: 8px; font-weight: 900; }
         header p { margin: 10px 0 0; font-size: 1rem; color: #888; letter-spacing: 2px; }
+        
         .container { max-width: 1000px; margin: 0 auto; padding: 20px; flex: 1; }
+
+        /* Admin UI */
         #admin-controls { display: none; margin: 20px 0; text-align: center; }
         #admin-panel { display: none; background: #fff; padding: 30px; border: 3px solid #000; margin: 20px 0; box-shadow: 10px 10px 0px #000; }
         #admin-panel input, #admin-panel textarea { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; box-sizing: border-box; font-family: inherit; }
+
+        /* News Grid */
         #blog-feed { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 25px; margin-top: 30px; }
-        .blog-card { background: white; border: 1px solid #eee; cursor: pointer; position: relative; border-radius: 8px; overflow: hidden; height: fit-content; transition: 0.3s; }
+
+        /* News Card */
+        .blog-card { background: white; border: 1px solid #eee; cursor: pointer; position: relative; border-radius: 8px; overflow: hidden; height: fit-content; transition: 0.3s; display: flex; flex-direction: column; }
         .blog-card.active { grid-column: 1 / -1; cursor: default; border: 1px solid #000; }
+
         .card-header { padding: 20px; position: relative; }
-        .card-header h3 { margin: 0; font-size: 1.5rem; line-height: 1.2; padding-right: 60px; color: #000; }
+        
+        /* Título em Negrito e Grande */
+        .card-header h3 { margin: 0; font-size: 1.5rem; line-height: 1.2; padding-right: 60px; color: #000; font-weight: 800; text-transform: none; }
         .active .card-header h3 { font-size: 2.2rem; }
+        
         .close-post { display: none; position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; z-index: 10; color: #000; }
         .active .close-post { display: block; }
-        .admin-dots { display: none; position: absolute; top: 10px; right: 40px; cursor: pointer; font-size: 1.8rem; color: #000 !important; z-index: 20; padding: 5px; font-weight: bold; }
+
+        /* Menu de Opções (Três Pontinhos) */
+        .admin-menu-container { display: none; position: absolute; top: 10px; right: 40px; z-index: 30; }
+        .admin-dots { cursor: pointer; font-size: 1.8rem; color: #000; font-weight: bold; padding: 5px; }
+        .admin-options { display: none; position: absolute; right: 0; background: white; border: 1px solid #000; box-shadow: 5px 5px 0px #000; width: 100px; }
+        .admin-options button { width: 100%; padding: 10px; border: none; background: none; cursor: pointer; text-align: left; font-weight: bold; border-bottom: 1px solid #eee; }
+        .admin-options button:hover { background: #eee; }
+
+        /* Conteúdo: Texto depois Imagem */
+        .card-content { display: none; padding: 25px; white-space: pre-wrap; font-size: 1.1rem; border-top: 1px solid #eee; background: #fff; color: #333; order: 1; }
+        .active .card-content { display: block; }
+
+        .card-image { order: 2; }
         .card-image img { width: 100%; height: 250px; object-fit: cover; display: block; }
         .active .card-image img { height: 450px; }
-        .card-content { display: none; padding: 25px; white-space: pre-wrap; font-size: 1.1rem; border-top: 1px solid #eee; background: #fff; color: #333; }
-        .active .card-content { display: block; }
+
         .btn-main { display: block; width: 100%; padding: 15px; margin: 20px 0; border: 2px solid black; background: white; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
-        .btn-admin-toggle { background: #000; color: #fff; max-width: 300px; margin: 0 auto; }
-        #lightbox { display: none; position: fixed; z-index: 9999; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; }
-        #lightbox img { max-width: 90%; max-height: 90%; }
         footer { background-color: #000; color: #fff; text-align: center; padding: 40px 20px; margin-top: 50px; }
-        footer a { color: #888; text-decoration: none; margin-left: 15px; font-size: 0.8rem; }
-        footer a:hover { color: #fff; text-decoration: underline; }
+        footer a { color: #888; text-decoration: none; margin-left: 15px; }
     </style>
 </head>
 <body>
+
     <nav>
         <span id="user-info"></span>
         <button id="login-btn" onclick="handleLogin()">Login with Google</button>
     </nav>
+
     <header>
         <h1>Deep Horizon</h1>
         <p>Everyday's technology news</p>
     </header>
+
     <div class="container">
         <div id="admin-controls">
-            <button id="toggle-icon-btn" class="btn-main btn-admin-toggle" onclick="toggleAdminPanel()">+ New Post</button>
+            <button id="toggle-icon-btn" class="btn-main" onclick="toggleAdminPanel()">+ New Post</button>
             <div id="admin-panel">
-                <h2>Create New Post</h2>
+                <h2 id="panel-title">Create New Post</h2>
+                <input type="hidden" id="edit-id">
                 <input type="text" id="post-title" placeholder="Post Title">
                 <input type="text" id="post-image" placeholder="Image URL">
-                <textarea id="post-body" rows="8" placeholder="Write content..."></textarea>
+                <textarea id="post-body" rows="8" placeholder="Content..."></textarea>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn-main" style="background: #000; color: #fff;" onclick="createPost()">Publish</button>
+                    <button class="btn-main" style="background: #000; color: #fff;" onclick="savePost()">Save Post</button>
                     <button class="btn-main" onclick="toggleAdminPanel()">Cancel</button>
                 </div>
             </div>
         </div>
+
         <div id="blog-feed"></div>
-        <button id="load-more" class="btn-main" style="display:none;" onclick="toggleLoadMore()">See More News</button>
+        <button id="load-more" class="btn-main" style="display:none;" onclick="loadPosts(true)">Load More</button>
     </div>
-    <div id="lightbox" onclick="this.style.display='none'"><img id="lightbox-img" src=""></div>
+
     <footer>
-    Deep Horizon. All rights reserved © 2026 
-    <a href="about.html">About Us</a> | 
-    <a href="privacy.html">Privacy Policy</a>
-</footer>
+        Deep Horizon © 2026 | <a href="about.html">About Us</a> | <a href="privacy.html">Privacy Policy</a>
+    </footer>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, startAfter, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, updateDoc, query, orderBy, limit, getDocs, startAfter, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -101,6 +124,7 @@
         let isAdmin = false;
 
         window.handleLogin = async () => { try { await signInWithPopup(auth, provider); } catch (e) { console.error(e); } };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 isAdmin = (user.email === "campameurer@gmail.com");
@@ -112,21 +136,50 @@
             loadPosts();
         });
 
-        window.toggleAdminPanel = () => {
+        window.toggleAdminPanel = (editData = null) => {
             const panel = document.getElementById('admin-panel');
-            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+            panel.style.display = panel.style.display === 'block' && !editData ? 'none' : 'block';
+            if(editData) {
+                document.getElementById('panel-title').innerText = "Edit Post";
+                document.getElementById('edit-id').value = editData.id;
+                document.getElementById('post-title').value = editData.title;
+                document.getElementById('post-image').value = editData.image;
+                document.getElementById('post-body').value = editData.content;
+            } else {
+                document.getElementById('panel-title').innerText = "Create New Post";
+                document.getElementById('edit-id').value = "";
+                document.getElementById('post-title').value = "";
+                document.getElementById('post-image').value = "";
+                document.getElementById('post-body').value = "";
+            }
         };
 
-        window.deletePost = async (event, postId) => {
+        window.toggleOptionsMenu = (event) => {
             event.stopPropagation();
-            if (confirm("Delete permanently?")) {
-                await deleteDoc(doc(db, "posts", postId));
+            const menu = event.currentTarget.nextElementSibling;
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+        };
+
+        window.editPost = async (event, id) => {
+            event.stopPropagation();
+            const docRef = doc(db, "posts", id);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                toggleAdminPanel({ id, ...docSnap.data() });
+                window.scrollTo(0,0);
+            }
+        };
+
+        window.deletePost = async (event, id) => {
+            event.stopPropagation();
+            if (confirm("Delete this post?")) {
+                await deleteDoc(doc(db, "posts", id));
                 location.reload();
             }
         };
 
         window.togglePost = (event, element) => {
-            if (event.target.classList.contains('admin-dots')) return;
+            if (event.target.closest('.admin-menu-container')) return;
             if (event.target.classList.contains('close-post')) {
                 event.stopPropagation();
                 element.classList.remove('active');
@@ -138,9 +191,11 @@
         async function loadPosts(isNextPage = false) {
             let q = query(collection(db, "posts"), orderBy("date", "desc"), limit(6));
             if (isNextPage && lastVisiblePost) q = query(collection(db, "posts"), orderBy("date", "desc"), startAfter(lastVisiblePost), limit(6));
+            
             const snap = await getDocs(q);
             if (snap.empty) return;
             lastVisiblePost = snap.docs[snap.docs.length - 1];
+            
             const feed = document.getElementById('blog-feed');
             snap.forEach(docSnap => {
                 const p = docSnap.data();
@@ -149,23 +204,38 @@
                     <article class="blog-card" onclick="togglePost(event, this)">
                         <div class="card-header">
                             <span class="close-post">&times;</span>
-                            <span class="admin-dots" style="${isAdmin ? 'display:block' : ''}" onclick="deletePost(event, '${id}')">⋮</span>
+                            <div class="admin-menu-container" style="${isAdmin ? 'display:block' : ''}">
+                                <span class="admin-dots" onclick="toggleOptionsMenu(event)">⋮</span>
+                                <div class="admin-options">
+                                    <button onclick="editPost(event, '${id}')">Edit</button>
+                                    <button onclick="deletePost(event, '${id}')" style="color:red">Delete</button>
+                                </div>
+                            </div>
                             <h3>${p.title}</h3>
                         </div>
-                        ${p.image ? `<div class="card-image"><img src="${p.image}"></div>` : ''}
                         <div class="card-content">${p.content}</div>
+                        ${p.image ? `<div class="card-image"><img src="${p.image}"></div>` : ''}
                     </article>`;
             });
             document.getElementById('load-more').style.display = 'block';
         }
 
-        window.createPost = async () => {
+        window.savePost = async () => {
+            const id = document.getElementById('edit-id').value;
             const title = document.getElementById('post-title').value;
-            const img = document.getElementById('post-image').value;
-            const body = document.getElementById('post-body').value;
-            await addDoc(collection(db, "posts"), { title, image: img, content: body, date: new Date() });
+            const image = document.getElementById('post-image').value;
+            const content = document.getElementById('post-body').value;
+
+            if (id) {
+                await updateDoc(doc(db, "posts", id), { title, image, content });
+            } else {
+                await addDoc(collection(db, "posts"), { title, image, content, date: new Date() });
+            }
             location.reload();
         };
+
+        // Fecha menus ao clicar fora
+        window.onclick = () => document.querySelectorAll('.admin-options').forEach(m => m.style.display = 'none');
     </script>
 </body>
 </html>
