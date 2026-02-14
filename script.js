@@ -22,22 +22,16 @@ let lastVisiblePost = null;
 let isAdmin = false;
 const POSTS_PER_PAGE = 6;
 
-// --- FUNÇÃO DE LOGIN (REVISADA) ---
+// --- LOGIN ---
 const handleLogin = async () => {
     try {
-        provider.setCustomParameters({ prompt: 'select_account' }); // Força escolher a conta
+        provider.setCustomParameters({ prompt: 'select_account' });
         await signInWithPopup(auth, provider);
-    } catch (error) {
-        console.error("Erro no login:", error);
-        alert("Falha no login. Verifique se os pop-ups estão permitidos.");
-    }
+    } catch (e) { console.error(e); }
 };
 
-const handleLogout = () => {
-    signOut(auth).then(() => location.reload());
-};
+const handleLogout = () => signOut(auth).then(() => location.reload());
 
-// --- MONITOR DE ESTADO ---
 onAuthStateChanged(auth, (user) => {
     const adminControls = document.getElementById('admin-controls');
     const loginBtn = document.getElementById('login-btn');
@@ -45,13 +39,8 @@ onAuthStateChanged(auth, (user) => {
 
     if (user) {
         userInfo.innerText = user.email;
-        if (user.email === ADMIN_EMAIL) {
-            isAdmin = true;
-            adminControls.style.display = 'block';
-        } else {
-            isAdmin = false;
-            adminControls.style.display = 'none';
-        }
+        isAdmin = (user.email === ADMIN_EMAIL);
+        adminControls.style.display = isAdmin ? 'block' : 'none';
         loginBtn.innerText = "Logout";
         loginBtn.onclick = handleLogout;
     } else {
@@ -61,13 +50,12 @@ onAuthStateChanged(auth, (user) => {
         loginBtn.innerText = "Login with Google";
         loginBtn.onclick = handleLogin;
     }
-    
     if (!lastVisiblePost) loadPosts();
 });
 
-// --- UI E GRID ---
+// --- UI ---
 window.togglePost = (e, el) => {
-    if (e.target.closest('.admin-menu-container') || e.target.closest('.close-btn')) return;
+    if (e.target.closest('.admin-menu-container') || e.target.closest('.close-btn') || e.target.tagName === 'IMG') return;
     if (!el.classList.contains('active')) {
         el.classList.add('active');
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -91,7 +79,27 @@ window.toggleOptionsMenu = (e) => {
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 };
 
-// --- CARREGAMENTO DE POSTS ---
+// --- LIGHTBOX (IMAGEM CHEIA) ---
+window.openFullscreen = (e, imgSrc) => {
+    e.stopPropagation();
+    const card = e.target.closest('.blog-card');
+    if (card.classList.contains('active')) {
+        const overlay = document.getElementById('image-overlay');
+        document.getElementById('fullscreen-img').src = imgSrc;
+        overlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    } else {
+        // Se clicar na imagem fora da notícia aberta, apenas abre a notícia
+        togglePost(e, card);
+    }
+};
+
+window.closeFullscreen = () => {
+    document.getElementById('image-overlay').style.display = 'none';
+    document.body.style.overflow = 'auto';
+};
+
+// --- DATA ---
 async function loadPosts(isLoadMore = false) {
     const feed = document.getElementById('blog-feed');
     const loadMoreBtn = document.getElementById('load-more');
@@ -99,7 +107,7 @@ async function loadPosts(isLoadMore = false) {
     if (isLoadMore && loadMoreBtn.innerText === "Show Less") {
         lastVisiblePost = null;
         loadMoreBtn.innerText = "See More News";
-        loadPosts(); 
+        loadPosts();
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
     }
@@ -109,13 +117,9 @@ async function loadPosts(isLoadMore = false) {
         : query(collection(db, "posts"), orderBy("date", "desc"), limit(POSTS_PER_PAGE));
 
     if (!isLoadMore) feed.innerHTML = "";
-
     const snap = await getDocs(q);
-    if (snap.empty) {
-        loadMoreBtn.style.display = 'none';
-        return;
-    }
-
+    
+    if (snap.empty) { loadMoreBtn.style.display = 'none'; return; }
     lastVisiblePost = snap.docs[snap.docs.length - 1];
 
     snap.forEach(docSnap => {
@@ -125,8 +129,7 @@ async function loadPosts(isLoadMore = false) {
             <article class="blog-card" onclick="togglePost(event, this)">
                 <div class="close-btn" onclick="closePost(event, this.parentElement)">✕</div>
                 <div class="card-header">
-                    ${isAdmin ? `
-                    <div class="admin-menu-container">
+                    ${isAdmin ? `<div class="admin-menu-container">
                         <span class="admin-dots" onclick="toggleOptionsMenu(event)">⋮</span>
                         <div class="admin-options">
                             <button onclick="editPost(event, '${id}')">Edit</button>
@@ -136,16 +139,17 @@ async function loadPosts(isLoadMore = false) {
                     <h3>${p.title}</h3>
                 </div>
                 <div class="card-content">${p.content}</div>
-                ${p.image ? `<div class="card-image"><img src="${p.image}"></div>` : ''}
+                ${p.image ? `<div class="card-image"><img src="${p.image}" onclick="openFullscreen(event, '${p.image}')"></div>` : ''}
             </article>`;
     });
 
     loadMoreBtn.style.display = 'block';
     loadMoreBtn.innerText = isLoadMore ? "Show Less" : "See More News";
 }
+
 window.loadPosts = loadPosts;
 
-// --- OPERAÇÕES ADMIN ---
+// --- ADMIN OPS ---
 window.savePost = async () => {
     if (!isAdmin) return;
     const id = document.getElementById('edit-id').value;
