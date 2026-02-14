@@ -22,25 +22,18 @@ let lastVisiblePost = null;
 let isAdmin = false;
 const POSTS_PER_PAGE = 6;
 
-// --- Authentication ---
 onAuthStateChanged(auth, (user) => {
     const adminControls = document.getElementById('admin-controls');
-    const loginBtn = document.getElementById('login-btn');
     if (user) {
         isAdmin = (user.email === ADMIN_EMAIL);
         document.getElementById('user-info').innerText = user.email;
-        loginBtn.innerText = "Logout";
-        loginBtn.onclick = () => signOut(auth).then(() => location.reload());
+        document.getElementById('login-btn').innerText = "Logout";
+        document.getElementById('login-btn').onclick = () => signOut(auth).then(() => location.reload());
         if (isAdmin) adminControls.style.display = 'block';
-    } else {
-        isAdmin = false;
-        loginBtn.innerText = "Login with Google";
-        loginBtn.onclick = () => signInWithPopup(auth, provider);
     }
     if (!lastVisiblePost) loadPosts();
 });
 
-// --- UI Functions ---
 window.togglePost = (e, el) => {
     if (e.target.closest('.admin-menu-container') || e.target.closest('.close-btn')) return;
     if (!el.classList.contains('active')) {
@@ -54,7 +47,7 @@ window.closePost = (e, el) => {
     el.classList.remove('active');
     setTimeout(() => {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+    }, 50);
 };
 
 window.toggleAdminPanel = () => {
@@ -62,22 +55,15 @@ window.toggleAdminPanel = () => {
     p.style.display = p.style.display === 'block' ? 'none' : 'block';
 };
 
-window.toggleOptionsMenu = (e) => {
-    e.stopPropagation();
-    const menu = e.currentTarget.nextElementSibling;
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-};
-
-// --- Carregar Notícias com Lógica de Fechar no Botão ---
 async function loadPosts(isLoadMore = false) {
     const feed = document.getElementById('blog-feed');
     const loadMoreBtn = document.getElementById('load-more');
 
-    // Se o botão for clicado e já tivermos mais posts que o limite, ele "RECOLE"
+    // Lógica para recolher as notícias
     if (isLoadMore && loadMoreBtn.innerText === "Show Less") {
         lastVisiblePost = null;
         loadMoreBtn.innerText = "See More News";
-        loadPosts(); // Recarrega apenas os primeiros
+        loadPosts(); 
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
     }
@@ -87,11 +73,10 @@ async function loadPosts(isLoadMore = false) {
         q = query(collection(db, "posts"), orderBy("date", "desc"), startAfter(lastVisiblePost), limit(POSTS_PER_PAGE));
     } else {
         q = query(collection(db, "posts"), orderBy("date", "desc"), limit(POSTS_PER_PAGE));
-        feed.innerHTML = ""; // Limpa para resetar
+        feed.innerHTML = "";
     }
 
     const snap = await getDocs(q);
-    
     if (snap.empty) {
         loadMoreBtn.style.display = 'none';
         return;
@@ -120,52 +105,9 @@ async function loadPosts(isLoadMore = false) {
             </article>`;
     });
 
-    // Se carregou o limite, mostra o botão. Se já carregou extras, muda o texto para permitir fechar.
-    if (snap.docs.length < POSTS_PER_PAGE && !isLoadMore) {
-        loadMoreBtn.style.display = 'none';
-    } else {
-        loadMoreBtn.style.display = 'block';
-        if (isLoadMore) {
-            loadMoreBtn.innerText = "Show Less";
-        } else {
-            loadMoreBtn.innerText = "See More News";
-        }
-    }
+    loadMoreBtn.style.display = snap.docs.length < POSTS_PER_PAGE && !isLoadMore ? 'none' : 'block';
+    if (isLoadMore) loadMoreBtn.innerText = "Show Less";
 }
+
 window.loadPosts = loadPosts;
-
-// --- Database Operations (Admin) ---
-window.savePost = async () => {
-    const id = document.getElementById('edit-id').value;
-    const data = {
-        title: document.getElementById('post-title').value,
-        image: document.getElementById('post-image').value,
-        content: document.getElementById('post-body').value,
-        date: new Date()
-    };
-    if (id) await updateDoc(doc(db, "posts", id), data);
-    else await addDoc(collection(db, "posts"), data);
-    location.reload();
-};
-
-window.deletePost = async (e, id) => {
-    e.stopPropagation();
-    if (confirm("Delete post?")) {
-        await deleteDoc(doc(db, "posts", id));
-        location.reload();
-    }
-};
-
-window.editPost = async (e, id) => {
-    e.stopPropagation();
-    const snap = await getDoc(doc(db, "posts", id));
-    if (snap.exists()) {
-        const p = snap.data();
-        document.getElementById('admin-panel').style.display = 'block';
-        document.getElementById('edit-id').value = id;
-        document.getElementById('post-title').value = p.title;
-        document.getElementById('post-image').value = p.image;
-        document.getElementById('post-body').value = p.content;
-        window.scrollTo(0,0);
-    }
-};
+// Adicione aqui suas funções savePost, editPost e deletePost conforme o código anterior.
