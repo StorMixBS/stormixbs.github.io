@@ -4,7 +4,7 @@ import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signO
 
 // --- CONFIGURAÇÃO ---
 const firebaseConfig = {
-  apiKey: "AIzaSyALHh2CFuSSWI2MR6RyiqRZZf4ABnp9Zyo",
+    apiKey: "AIzaSyALHh2CFuSSWI2MR6RyiqRZZf4ABnp9Zyo",
   authDomain: "deep-horizons-51171.firebaseapp.com",
   projectId: "deep-horizons-51171",
   storageBucket: "deep-horizons-51171.firebasestorage.app",
