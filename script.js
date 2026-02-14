@@ -2,6 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, updateDoc, query, orderBy, limit, getDocs, startAfter, deleteDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// --- CONFIGURAÇÃO ---
 const firebaseConfig = {
   apiKey: "AIzaSyALHh2CFuSSWI2MR6RyiqRZZf4ABnp9Zyo",
   authDomain: "deep-horizons-51171.firebaseapp.com",
@@ -22,18 +23,51 @@ let lastVisiblePost = null;
 let isAdmin = false;
 const POSTS_PER_PAGE = 6;
 
+// --- LOGIN COM GOOGLE ---
+window.loginGoogle = async () => {
+    try {
+        await signInWithPopup(auth, provider);
+        console.log("Login efetuado!");
+    } catch (error) {
+        console.error("Erro no login:", error);
+        alert("Erro ao fazer login: " + error.message);
+    }
+};
+
+window.logoutGoogle = () => {
+    signOut(auth).then(() => {
+        location.reload();
+    });
+};
+
+// --- MONITOR DE AUTENTICAÇÃO ---
 onAuthStateChanged(auth, (user) => {
     const adminControls = document.getElementById('admin-controls');
-    if (user) {
-        isAdmin = (user.email === ADMIN_EMAIL);
-        document.getElementById('user-info').innerText = user.email;
-        document.getElementById('login-btn').innerText = "Logout";
-        document.getElementById('login-btn').onclick = () => signOut(auth).then(() => location.reload());
-        if (isAdmin) adminControls.style.display = 'block';
+    const loginBtn = document.getElementById('login-btn');
+    const userInfo = document.getElementById('user-info');
+
+    if (user && user.email === ADMIN_EMAIL) {
+        isAdmin = true;
+        userInfo.innerText = user.email;
+        loginBtn.innerText = "Logout";
+        loginBtn.onclick = logoutGoogle;
+        adminControls.style.display = 'block'; // SÓ MOSTRA SE FOR SEU E-MAIL
+    } else {
+        isAdmin = false;
+        userInfo.innerText = "";
+        loginBtn.innerText = "Login with Google";
+        loginBtn.onclick = loginGoogle;
+        adminControls.style.display = 'none'; // ESCONDE PARA QUALQUER OUTRO
+        
+        if (user) {
+            console.log("Logado como usuário comum, sem acesso admin.");
+        }
     }
+    
     if (!lastVisiblePost) loadPosts();
 });
 
+// --- FUNÇÕES DE INTERFACE ---
 window.togglePost = (e, el) => {
     if (e.target.closest('.admin-menu-container') || e.target.closest('.close-btn')) return;
     if (!el.classList.contains('active')) {
@@ -55,11 +89,17 @@ window.toggleAdminPanel = () => {
     p.style.display = p.style.display === 'block' ? 'none' : 'block';
 };
 
+window.toggleOptionsMenu = (e) => {
+    e.stopPropagation();
+    const menu = e.currentTarget.nextElementSibling;
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+};
+
+// --- CARREGAR POSTS ---
 async function loadPosts(isLoadMore = false) {
     const feed = document.getElementById('blog-feed');
     const loadMoreBtn = document.getElementById('load-more');
 
-    // Lógica para recolher as notícias
     if (isLoadMore && loadMoreBtn.innerText === "Show Less") {
         lastVisiblePost = null;
         loadMoreBtn.innerText = "See More News";
@@ -91,13 +131,14 @@ async function loadPosts(isLoadMore = false) {
             <article class="blog-card" onclick="togglePost(event, this)">
                 <div class="close-btn" onclick="closePost(event, this.parentElement)">✕</div>
                 <div class="card-header">
-                    <div class="admin-menu-container" style="${isAdmin ? 'display:block' : 'display:none'}">
+                    ${isAdmin ? `
+                    <div class="admin-menu-container">
                         <span class="admin-dots" onclick="toggleOptionsMenu(event)">⋮</span>
                         <div class="admin-options">
                             <button onclick="editPost(event, '${id}')">Edit</button>
                             <button onclick="deletePost(event, '${id}')" style="color:red">Delete</button>
                         </div>
-                    </div>
+                    </div>` : ''}
                     <h3>${p.title}</h3>
                 </div>
                 <div class="card-content">${p.content}</div>
@@ -105,9 +146,44 @@ async function loadPosts(isLoadMore = false) {
             </article>`;
     });
 
-    loadMoreBtn.style.display = snap.docs.length < POSTS_PER_PAGE && !isLoadMore ? 'none' : 'block';
-    if (isLoadMore) loadMoreBtn.innerText = "Show Less";
+    loadMoreBtn.style.display = 'block';
+    loadMoreBtn.innerText = isLoadMore ? "Show Less" : "See More News";
 }
-
 window.loadPosts = loadPosts;
-// Adicione aqui suas funções savePost, editPost e deletePost conforme o código anterior.
+
+// --- OPERAÇÕES ADMIN ---
+window.savePost = async () => {
+    if (!isAdmin) return;
+    const id = document.getElementById('edit-id').value;
+    const data = {
+        title: document.getElementById('post-title').value,
+        image: document.getElementById('post-image').value,
+        content: document.getElementById('post-body').value,
+        date: new Date()
+    };
+    if (id) await updateDoc(doc(db, "posts", id), data);
+    else await addDoc(collection(db, "posts"), data);
+    location.reload();
+};
+
+window.deletePost = async (e, id) => {
+    e.stopPropagation();
+    if (isAdmin && confirm("Delete post?")) {
+        await deleteDoc(doc(db, "posts", id));
+        location.reload();
+    }
+};
+
+window.editPost = async (e, id) => {
+    e.stopPropagation();
+    const snap = await getDoc(doc(db, "posts", id));
+    if (snap.exists() && isAdmin) {
+        const p = snap.data();
+        document.getElementById('admin-panel').style.display = 'block';
+        document.getElementById('edit-id').value = id;
+        document.getElementById('post-title').value = p.title;
+        document.getElementById('post-image').value = p.image;
+        document.getElementById('post-body').value = p.content;
+        window.scrollTo(0,0);
+    }
+};
